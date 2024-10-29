@@ -1,0 +1,89 @@
+name: Terraform Plan and Apply
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  apply-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      # Azure Login (Shared)
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Azure Terraform Variables (Shared)
+      - name: Set Azure Terraform Variables
+        run: |
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+
+      # Setup Terraform (Shared)
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      # Core
+      - name: Terraform Initialize (core)
+        run: |
+          terraform -chdir=core init \
+          -backend-config="resource_group_name=rg-up-tfstate" \
+          -backend-config="storage_account_name=sauptfstate" \
+          -backend-config="container_name=tfstate-core" \
+          -backend-config="key=tfstate-core" \
+            -upgrade
+      - name: Terraform Plan and Apply (core)
+        run: |
+          terraform -chdir=core plan -out=tfplan-core
+          terraform -chdir=core apply -auto-approve tfplan-core
+
+      # Dev
+      - name: Terraform Initialize (dev)
+        run: |
+          terraform -chdir=dev init \
+          -backend-config="resource_group_name=rg-up-tfstate" \
+          -backend-config="storage_account_name=sauptfstate" \
+          -backend-config="container_name=tfstate-dev" \
+          -backend-config="key=tfstate-dev" \
+          -upgrade
+      - name: Terraform Plan and Apply (dev)
+        run: |
+          terraform -chdir=dev plan -out=tfplan-dev
+          terraform -chdir=dev apply -auto-approve tfplan-dev
+
+      # Stg
+      - name: Terraform Initialize (stg)
+        run: |
+          terraform -chdir=stg init \
+          -backend-config="resource_group_name=rg-up-tfstate" \
+          -backend-config="storage_account_name=sauptfstate" \
+          -backend-config="container_name=tfstate-stg" \
+          -backend-config="key=tfstate-stg" \
+          -upgrade
+      - name: Terraform Plan and Apply (stg)
+        run: |
+          terraform -chdir=stg plan -out=tfplan-stg
+          terraform -chdir=stg apply -auto-approve tfplan-stg
+
+      # Prd
+      - name: Terraform Initialize (prd)
+        run: |
+          terraform -chdir=prd init \
+          -backend-config="resource_group_name=rg-up-tfstate" \
+          -backend-config="storage_account_name=sauptfstate" \
+          -backend-config="container_name=tfstate-prd" \
+          -backend-config="key=tfstate-prd" \
+          -upgrade
+      - name: Terraform Plan and Apply (prd)
+        run: |
+          terraform -chdir=prd plan -out=tfplan-prd
+          terraform -chdir=prd apply -auto-approve tfplan-prd
