@@ -7,13 +7,13 @@ terraform {
 data "azurerm_client_config" "current" {}
 
 module "resource_group" {
-  source              = "./modules/resource_group"
+  source              = "../modules/resource_group"
   resource_group_name = var.resource_group_name
   resource_group_location = var.resource_group_location
 }
 
 module "dns_zone" {
-  source              = "./modules/dns_zone"
+  source              = "../modules/dns_zone"
   resource_group_name = var.resource_group_name
   dns_zone_name           = var.dns_zone_name
   depends_on = [module.resource_group]

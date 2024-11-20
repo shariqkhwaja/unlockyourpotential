@@ -8,34 +8,40 @@ terraform {
 data "azurerm_client_config" "current" {}
 data "azuread_client_config" "current" {}
 
-resource "azurerm_resource_group" "resource_group" {
-  name     = var.resource_group_name
-  location = var.resource_group_location
+# resource "azurerm_resource_group" "resource_group" {
+#   name     = var.resource_group_name
+#   location = var.resource_group_location
+# }
+
+module "resource_group" {
+  source              = "../modules/resource_group"
+  resource_group_name = var.resource_group_name
+  resource_group_location = var.resource_group_location
 }
 
 resource "azurerm_application_insights" "application_insights" {
   name                = "ai-${var.application_key}-${var.environment_key}"
-  location            = azurerm_resource_group.resource_group.location
-  resource_group_name = azurerm_resource_group.resource_group.name
+  location            = var.resource_group_location
+  resource_group_name = module.resource_group.name
   application_type    = "web"
 
-  depends_on = [azurerm_resource_group.resource_group]
+  depends_on = [module.resource_group]
 }
 
 resource "azurerm_storage_account" "storage_account" {
   name                     = var.storage_account_name
-  resource_group_name      = azurerm_resource_group.resource_group.name
-  location                 = azurerm_resource_group.resource_group.location
+  resource_group_name      = module.resource_group.name
+  location                 = var.resource_group_location
   account_tier             = "Standard"
   account_replication_type = "GRS"
   min_tls_version          = "TLS1_2"  # Disable support for TLS versions below 1.2
 
-  depends_on = [azurerm_resource_group.resource_group]
+  depends_on = [module.resource_group]
 }
 
 resource "azurerm_static_web_app" "static_web_app" {
   name                = var.static_web_app_name
-  resource_group_name = azurerm_resource_group.resource_group.name
+  resource_group_name = module.resource_group.name
   location            = var.static_website_location
 }
 
@@ -126,16 +132,16 @@ resource "azurerm_dns_txt_record" "apex" {
 
 resource "azurerm_service_plan" "service_plan" {
   name                = "as-${var.application_key}-${var.environment_key}"
-  resource_group_name = azurerm_resource_group.resource_group.name
-  location            = azurerm_resource_group.resource_group.location
+  resource_group_name = module.resource_group.name
+  location            = var.resource_group_location
   os_type             = "Windows"
   sku_name            = "Y1"
 }
 
 resource "azurerm_windows_function_app" "function_app" {
   name                = "fa-${var.application_key}-${var.environment_key}"
-  resource_group_name = azurerm_resource_group.resource_group.name
-  location            = azurerm_resource_group.resource_group.location
+  resource_group_name = module.resource_group.name
+  location            = var.resource_group_location
 
   storage_account_name       = azurerm_storage_account.storage_account.name
   storage_account_access_key = azurerm_storage_account.storage_account.primary_access_key
@@ -191,7 +197,7 @@ resource "azurerm_dns_txt_record" "txt_record_api" {
   resource "azurerm_app_service_custom_hostname_binding" "hostname_binding" {
   hostname            = trim(azurerm_dns_cname_record.cname_record_api.fqdn, ".")
   app_service_name    = azurerm_windows_function_app.function_app.name
-  resource_group_name = azurerm_resource_group.resource_group.name
+  resource_group_name = module.resource_group.name
 
   # Ignore ssl_state and thumbprint as they are managed using
   # azurerm_app_service_certificate_binding.example
