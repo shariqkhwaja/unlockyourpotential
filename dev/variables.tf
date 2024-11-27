@@ -3,14 +3,19 @@ variable "azure_subscription_id" {
   description = "ID of the subscription."
 }
 
-variable "resource_group_name" {
-  default     = "rg-up-dev"
-  description = "Name of the resource group."
+variable "application_key" {
+  default = "up"
+  description = "The string in the resource name to denote the application."
 }
 
-variable "resource_group_location" {
-  default     = "australiasoutheast"
-  description = "Location of the resource group."
+variable "environment_key" {
+  default = "dev"
+  description = "The string in the resource name to denote the environment"
+}
+
+variable "dns_zone_resource_group_name" {
+  default     = "rg-up-core"
+  description = "Name of the core resource group ."
 }
 
 variable "dns_zone_name" {
@@ -18,35 +23,13 @@ variable "dns_zone_name" {
   description = "Name of the DNS zone."
 }
 
-variable "core_resource_group_name" {
-  default     = "rg-up-core"
-  description = "Name of the core resource group."
+variable "resource_group_location" {
+  default     = "australiasoutheast"
+  description = "Location of the resource group."
 }
-
-variable "storage_account_name" {
-  default     = "saupdev"
-  description = "Name of the storage account."
-}
-
-variable "static_web_app_name" {
-  default     = "sw-up-dev"
-  description = "Name of the static web app."
-}
-
-variable "domain_name" {
-  default     = "unlockyourpotential.ai"
-  description = "Name of the domain."
-}
-
-
 
 variable "allowed_origins" {
   default = ["http://localhost:8080", "https://dev.unlockyourpotential.ai"]
-}
-
-variable "application_key" {
-  default = "up"
-  description = "The string in the resource name to denote the application."
 }
 
 variable "static_website_location" {
@@ -54,8 +37,8 @@ variable "static_website_location" {
   description = "The Azure region for static web app."
 }
 
-variable "environment_key" {
+variable "website_cname_name" {
   default = "dev"
-  description = "The string in the resource name to denote the environment"
+  description = "The CNAME name for the website."
 }
 
