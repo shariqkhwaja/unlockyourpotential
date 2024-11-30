@@ -37,8 +37,3 @@ variable "static_website_location" {
   description = "The Azure region for static web app."
 }
 
-variable "website_cname_name" {
-  default = "dev"
-  description = "The CNAME name for the website."
-}
-

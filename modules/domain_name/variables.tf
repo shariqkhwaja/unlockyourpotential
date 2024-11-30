@@ -1,5 +1,9 @@
+variable "dns_zone_name" {
+  description = "Name of the DNS zone."
+}
+
 variable "resource_group_location" {
-  description = "Location for the resource group."
+  description = "Resource group location for the DNS zone."
 }
 
 variable "application_key" {
