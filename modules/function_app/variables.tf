@@ -8,11 +8,6 @@ variable "resource_group_location" {
   type        = string
 }
 
-variable "allowed_origins" {
-  description = "CORS allowed origins."
-  type        = list(string)
-}
-
 variable "application_key" {
   description = "The application key."
   type        = string

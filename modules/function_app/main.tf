@@ -30,10 +30,10 @@ resource "azurerm_windows_function_app" "function_app" {
   storage_account_name       = azurerm_storage_account.storage_account.name
   storage_account_access_key = azurerm_storage_account.storage_account.primary_access_key
   service_plan_id            = azurerm_service_plan.service_plan.id
-  app_settings               = { 
+  app_settings = {
     "WEBSITE_RUN_FROM_PACKAGE" = "",
     "FUNCTIONS_WORKER_RUNTIME" = "dotnet"
-    }
+  }
 
   lifecycle {
     ignore_changes = [
@@ -43,26 +43,27 @@ resource "azurerm_windows_function_app" "function_app" {
 
   site_config {
     application_insights_connection_string = azurerm_application_insights.application_insights.connection_string
-    application_insights_key = azurerm_application_insights.application_insights.instrumentation_key
+    application_insights_key               = azurerm_application_insights.application_insights.instrumentation_key
     cors {
-      allowed_origins = var.allowed_origins
+      allowed_origins = ["http://localhost:8080", "https://dev.${var.dns_zone_name}", "https://stg.${var.dns_zone_name}", "https://${var.dns_zone_name}"]
     }
   }
 }
 
-
 resource "azurerm_dns_cname_record" "cname_record_api" {
+  count               = var.environment_key != "prd" ? 1 : 0
   name                = "api-${var.environment_key}"
   zone_name           = var.dns_zone_name
   resource_group_name = var.dns_zone_resource_group_name
   ttl                 = 60
   record              = azurerm_windows_function_app.function_app.default_hostname
 
-  depends_on = [ azurerm_windows_function_app.function_app ]
+  depends_on = [azurerm_windows_function_app.function_app]
 }
 
 resource "azurerm_dns_txt_record" "txt_record_api" {
-  name                = "asuid.${azurerm_dns_cname_record.cname_record_api.name}"
+  count               = var.environment_key != "prd" ? 1 : 0
+  name                = "asuid.${azurerm_dns_cname_record.cname_record_api[0].name}"
   zone_name           = var.dns_zone_name
   resource_group_name = var.dns_zone_resource_group_name
   ttl                 = 60
@@ -70,38 +71,121 @@ resource "azurerm_dns_txt_record" "txt_record_api" {
     value = azurerm_windows_function_app.function_app.custom_domain_verification_id
   }
 
-  depends_on = [ azurerm_windows_function_app.function_app]  
+  depends_on = [azurerm_windows_function_app.function_app]
 }
 
-  resource "azurerm_app_service_custom_hostname_binding" "hostname_binding" {
-  hostname            = trim(azurerm_dns_cname_record.cname_record_api.fqdn, ".")
+resource "azurerm_app_service_custom_hostname_binding" "hostname_binding" {
+  count               = var.environment_key != "prd" ? 1 : 0
+  hostname            = trim(azurerm_dns_cname_record.cname_record_api[0].fqdn, ".")
   app_service_name    = azurerm_windows_function_app.function_app.name
   resource_group_name = var.resource_group_name
 
-  # Ignore ssl_state and thumbprint as they are managed using
-  # azurerm_app_service_certificate_binding.example
   lifecycle {
     ignore_changes = [ssl_state, thumbprint]
   }
 
-    timeouts {
+  timeouts {
     create = "30m"
     delete = "30m"
   }
 
-    depends_on = [azurerm_windows_function_app.function_app]
+  depends_on = [azurerm_windows_function_app.function_app]
 }
 
 resource "azurerm_app_service_managed_certificate" "managed_certificate" {
-  custom_hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding.id
+  count               = var.environment_key != "prd" ? 1 : 0
+  custom_hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding[0].id
 
   depends_on = [azurerm_app_service_custom_hostname_binding.hostname_binding]
 }
 
 resource "azurerm_app_service_certificate_binding" "certificate_binding" {
-  hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding.id
-  certificate_id      = azurerm_app_service_managed_certificate.managed_certificate.id
+  count               = var.environment_key != "prd" ? 1 : 0
+  hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding[0].id
+  certificate_id      = azurerm_app_service_managed_certificate.managed_certificate[0].id
   ssl_state           = "SniEnabled"
 
   depends_on = [azurerm_app_service_managed_certificate.managed_certificate]
 } 
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource "azurerm_dns_cname_record" "cname_record_api_prd" {
+  count               = var.environment_key == "prd" ? 1 : 0
+  name                = "api"
+  zone_name           = var.dns_zone_name
+  resource_group_name = var.dns_zone_resource_group_name
+  ttl                 = 60
+  record              = azurerm_windows_function_app.function_app.default_hostname
+
+  depends_on = [azurerm_windows_function_app.function_app]
+}
+
+resource "azurerm_dns_txt_record" "txt_record_api_prd" {
+  count               = var.environment_key == "prd" ? 1 : 0
+  name                = "asuid.${azurerm_dns_cname_record.cname_record_api_prd[0].name}"
+  zone_name           = var.dns_zone_name
+  resource_group_name = var.dns_zone_resource_group_name
+  ttl                 = 60
+  record {
+    value = azurerm_windows_function_app.function_app.custom_domain_verification_id
+  }
+
+  depends_on = [azurerm_windows_function_app.function_app]
+}
+
+resource "azurerm_app_service_custom_hostname_binding" "hostname_binding_prd" {
+  count               = var.environment_key == "prd" ? 1 : 0
+  hostname            = trim(azurerm_dns_cname_record.cname_record_api_prd[0].fqdn, ".")
+  app_service_name    = azurerm_windows_function_app.function_app.name
+  resource_group_name = var.resource_group_name
+
+  lifecycle {
+    ignore_changes = [ssl_state, thumbprint]
+  }
+
+  timeouts {
+    create = "30m"
+    delete = "30m"
+  }
+
+  depends_on = [azurerm_windows_function_app.function_app]
+}
+
+resource "azurerm_app_service_managed_certificate" "managed_certificate_prd" {
+  count               = var.environment_key == "prd" ? 1 : 0
+  custom_hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding_prd[0].id
+
+  depends_on = [azurerm_app_service_custom_hostname_binding.hostname_binding_prd]
+}
+
+resource "azurerm_app_service_certificate_binding" "certificate_binding_prd" {
+  count               = var.environment_key == "prd" ? 1 : 0
+  hostname_binding_id = azurerm_app_service_custom_hostname_binding.hostname_binding_prd[0].id
+  certificate_id      = azurerm_app_service_managed_certificate.managed_certificate_prd[0].id
+  ssl_state           = "SniEnabled"
+
+  depends_on = [azurerm_app_service_managed_certificate.managed_certificate_prd]
+} 
+
+
+
+
+
+
+
+
+
+
+
+

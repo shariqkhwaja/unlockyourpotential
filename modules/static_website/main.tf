@@ -13,6 +13,8 @@ resource "azurerm_dns_cname_record" "cname_record" {
   lifecycle {
     ignore_changes = [record]
   }
+
+  depends_on = [ azurerm_static_web_app.static_web_app ]
 }
 
 resource "azurerm_static_web_app_custom_domain" "static_web_app_custom_domain" {
@@ -24,6 +26,8 @@ resource "azurerm_static_web_app_custom_domain" "static_web_app_custom_domain" {
     create = "30m"
     delete = "30m"
   }
+
+  depends_on = [ azurerm_dns_cname_record.cname_record ]
 }
 
 ##############
@@ -63,6 +67,8 @@ resource "azurerm_static_web_app_custom_domain" "apex" {
     create = "30m"
     delete = "30m"
   }
+
+  depends_on = [ azurerm_dns_a_record.apex, azurerm_dns_cname_record.cname_record_prod ]
 }
 
 resource "azurerm_dns_txt_record" "apex" {
