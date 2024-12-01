@@ -23,19 +23,7 @@ variable "resource_group_location" {
   type        = string
 }
 
-variable "core_resource_group_name" {
-  description = "Location of the resource group."
-  type        = string
-}
-
 variable "static_website_location" {
   description = "The Azure region for the static web app."
   type        = string
 }
-
-variable "rest_api_names" {
-  description = "The names of the REST APIs for the function apps."
-  type        = list(string)
-}
-
-

@@ -80,6 +80,6 @@ resource "azurerm_dns_txt_record" "apex" {
   record {
     value = azurerm_static_web_app_custom_domain.apex[0].validation_token
   }
-  depends_on = [azurerm_static_web_app_custom_domain.apex]
+  depends_on = [azurerm_static_web_app_custom_domain.apex[0]]
   # Explicitly specify that this depends on the apex custom domain validation
 }

@@ -106,19 +106,7 @@ resource "azurerm_app_service_certificate_binding" "certificate_binding" {
   ssl_state           = "SniEnabled"
 
   depends_on = [azurerm_app_service_managed_certificate.managed_certificate]
-} 
-
-
-
-
-
-
-
-
-
-
-
-
+}
 
 resource "azurerm_dns_cname_record" "cname_record_api_prd" {
   count               = var.environment_key == "prd" ? 1 : 0
@@ -177,15 +165,3 @@ resource "azurerm_app_service_certificate_binding" "certificate_binding_prd" {
 
   depends_on = [azurerm_app_service_managed_certificate.managed_certificate_prd]
 } 
-
-
-
-
-
-
-
-
-
-
-
-
