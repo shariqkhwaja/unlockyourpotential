@@ -27,7 +27,7 @@ terraform -chdir=environments plan \
   -out=tfplan-${ENVIRONMENT_KEY}
 
 # Apply the Terraform plan
-#terraform -chdir=environments apply tfplan-${ENVIRONMENT_KEY}
+terraform -chdir=environments apply tfplan-${ENVIRONMENT_KEY}
 
 # Clean up temporary files
 rm -rf environments/tfplan-${ENVIRONMENT_KEY} environments/.terraform environments/.terraform.lock.hcl tfplan-${ENVIRONMENT_KEY}
